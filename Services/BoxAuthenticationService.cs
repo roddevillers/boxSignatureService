@@ -1,7 +1,6 @@
 using System;
 using System.Configuration;
 using System.Threading.Tasks;
-using Box.V2;
 using Box.V2.Auth;
 using Box.V2.Config;
 using Box.V2.JwtAuth;
@@ -41,13 +40,13 @@ namespace boxSignatureService.Services
                             // Initialize JWT auth with enterprise key
                             var boxJwtAuth = new BoxJwtAuth(enterpriseKeyJson);
                             
-                            // Get access token
-                            var token = boxJwtAuth.GetUnmanagedToken();
+                            // Get access token synchronously
+                            var token = boxJwtAuth.GetUnmanagedTokenAsync().Result;
                             
-                            // Create Box client
+                            // Create Box client with token
                             _boxClient = new BoxClient(
                                 new Uri("https://api.box.com/2.0/"),
-                                new OAuthSession(token.AccessToken)
+                                new OAuthSession(token.AccessToken, "bearer", 3600, null)
                             );
                         }
                         catch (Exception ex)
