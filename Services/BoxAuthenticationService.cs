@@ -1,8 +1,10 @@
 using System;
 using System.Configuration;
+using System.Threading.Tasks;
 using Box.V2;
 using Box.V2.Auth;
 using Box.V2.Config;
+using Box.V2.JwtAuth;
 
 namespace boxSignatureService.Services
 {
@@ -11,14 +13,14 @@ namespace boxSignatureService.Services
     /// </summary>
     public class BoxAuthenticationService
     {
-        private static BoxClient _boxClient;
+        private static IBoxClient _boxClient;
         private static readonly object _lockObject = new object();
 
         /// <summary>
         /// Gets or creates a Box API client using enterprise key authentication
         /// </summary>
         /// <returns>Authenticated BoxClient instance</returns>
-        public static BoxClient GetBoxClient()
+        public static IBoxClient GetBoxClient()
         {
             if (_boxClient == null)
             {
@@ -36,14 +38,17 @@ namespace boxSignatureService.Services
 
                         try
                         {
-                            // Parse the enterprise key JSON
-                            var boxConfig = new BoxConfig(enterpriseKeyJson);
-
-                            // Create Box client with enterprise authentication
-                            _boxClient = new BoxClient(boxConfig);
-
-                            // Authenticate the client
-                            _boxClient.Auth.Authenticate().Wait();
+                            // Initialize JWT auth with enterprise key
+                            var boxJwtAuth = new BoxJwtAuth(enterpriseKeyJson);
+                            
+                            // Get access token
+                            var token = boxJwtAuth.GetUnmanagedToken();
+                            
+                            // Create Box client
+                            _boxClient = new BoxClient(
+                                new Uri("https://api.box.com/2.0/"),
+                                new OAuthSession(token.AccessToken)
+                            );
                         }
                         catch (Exception ex)
                         {
